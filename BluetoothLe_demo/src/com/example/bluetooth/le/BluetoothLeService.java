@@ -65,6 +65,8 @@ public class BluetoothLeService extends Service {
 
     public final static UUID UUID_HEART_RATE_MEASUREMENT =
             UUID.fromString(SampleGattAttributes.HEART_RATE_MEASUREMENT);
+    public final static UUID UUID_GATT_SERVICES =
+            UUID.fromString(SampleGattAttributes.GATT_SERVICES);
 
     // Implements callback methods for GATT events that the app cares about.  For example,
     // connection change and services discovered.
@@ -281,7 +283,37 @@ public class BluetoothLeService extends Service {
             Log.w(TAG, "BluetoothAdapter not initialized");
             return;
         }
+        writeCharacteristic(characteristic);
         mBluetoothGatt.readCharacteristic(characteristic);
+    }
+    
+    public void writeCharacteristic(BluetoothGattCharacteristic characteristic) {
+        if (mBluetoothAdapter == null || mBluetoothGatt == null) {
+            Log.w(TAG, "BluetoothAdapter not initialized");
+            return;
+        }
+        
+        byte[] mac = CHexConver.hexStr2Bytes(mBluetoothDeviceAddress);
+        
+        byte[] value = new byte[16];
+        value[0] = 0x09;
+        value[1] = 0x0F;
+        value[2] = 0x01;
+        value[3] = (byte)0xA5;
+        value[4] = mac[0];
+        value[5] = mac[1];
+        value[6] = mac[2];
+        value[7] = mac[3];
+        value[8] = mac[4];
+        value[9] = mac[5];
+        value[10] = 0x09;
+        value[11] = (byte)178;
+        value[12] = (byte)26;
+        value[13] = (byte)1;
+        value[14] = (byte)1;
+        
+        characteristic.setValue(value);
+    	mBluetoothGatt.writeCharacteristic(characteristic);
     }
 
     /**
@@ -303,6 +335,29 @@ public class BluetoothLeService extends Service {
             BluetoothGattDescriptor descriptor = characteristic.getDescriptor(
                     UUID.fromString(SampleGattAttributes.CLIENT_CHARACTERISTIC_CONFIG));
             descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+            mBluetoothGatt.writeDescriptor(descriptor);
+        } else if (UUID.fromString("00002a05-0000-1000-8000-00805f9b34fb").equals(characteristic.getUuid())) {
+        	BluetoothGattDescriptor descriptor = characteristic.getDescriptor(
+                    UUID.fromString("00002902-0000-1000-8000-00805f9b34fb"));
+        	byte[] mac = CHexConver.hexStr2Bytes(mBluetoothDeviceAddress);
+            
+            byte[] value = new byte[16];
+            value[0] = 0x09;
+            value[1] = 0x0F;
+            value[2] = 0x01;
+            value[3] = (byte)0xA5;
+            value[4] = mac[0];
+            value[5] = mac[1];
+            value[6] = mac[2];
+            value[7] = mac[3];
+            value[8] = mac[4];
+            value[9] = mac[5];
+            value[10] = 0x09;
+            value[11] = (byte)178;
+            value[12] = (byte)26;
+            value[13] = (byte)1;
+            value[14] = (byte)1;
+            descriptor.setValue(value);
             mBluetoothGatt.writeDescriptor(descriptor);
         }
     }

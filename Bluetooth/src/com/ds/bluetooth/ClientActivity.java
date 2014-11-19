@@ -47,9 +47,12 @@ public class ClientActivity extends Activity {
 			} else if (BluetoothTools.ACTION_FOUND_DEVICE.equals(action)) {
 				//获取到设备对象
 				BluetoothDevice device = (BluetoothDevice)intent.getExtras().get(BluetoothTools.DEVICE);
-				if (device.getName() != null && device.getName().equals("RogerHong")) {
-					deviceList.add(device);
-					serversText.append(device.getName() + "\r\n");
+				if (device.getName() != null) {
+					System.out.println("found bluetooth device: " + device.getName());
+					if (device.getName().equals("Healthcare")) {
+						deviceList.add(device);
+						serversText.append(device.getName() + "\r\n");
+					}
 				}
 				
 			} else if (BluetoothTools.ACTION_CONNECT_SUCCESS.equals(action)) {
