@@ -16,13 +16,15 @@
 
 package com.example.bluetooth.le;
 
+import java.util.List;
+import java.util.UUID;
+
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
-import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
@@ -31,9 +33,6 @@ import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
-
-import java.util.List;
-import java.util.UUID;
 
 /**
  * Service for managing connection and data communication with a GATT server hosted on a
@@ -63,10 +62,8 @@ public class BluetoothLeService extends Service {
     public final static String EXTRA_DATA =
             "com.example.bluetooth.le.EXTRA_DATA";
 
-    public final static UUID UUID_HEART_RATE_MEASUREMENT =
-            UUID.fromString(SampleGattAttributes.HEART_RATE_MEASUREMENT);
-    public final static UUID UUID_GATT_SERVICES =
-            UUID.fromString(SampleGattAttributes.GATT_SERVICES);
+    public final static UUID UUID_HEALTH_CARE_MEASUREMENT =
+            UUID.fromString(SampleGattAttributes.HEALTHCARE_MEASUREMENT);
 
     // Implements callback methods for GATT events that the app cares about.  For example,
     // connection change and services discovered.
@@ -82,7 +79,6 @@ public class BluetoothLeService extends Service {
                 // Attempts to discover services after successful connection.
                 Log.i(TAG, "Attempting to start service discovery:" +
                         mBluetoothGatt.discoverServices());
-
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 intentAction = ACTION_GATT_DISCONNECTED;
                 mConnectionState = STATE_DISCONNECTED;
@@ -129,20 +125,20 @@ public class BluetoothLeService extends Service {
         // This is special handling for the Heart Rate Measurement profile.  Data parsing is
         // carried out as per profile specifications:
         // http://developer.bluetooth.org/gatt/characteristics/Pages/CharacteristicViewer.aspx?u=org.bluetooth.characteristic.heart_rate_measurement.xml
-        if (UUID_HEART_RATE_MEASUREMENT.equals(characteristic.getUuid())) {
-            int flag = characteristic.getProperties();
-            int format = -1;
-            if ((flag & 0x01) != 0) {
-                format = BluetoothGattCharacteristic.FORMAT_UINT16;
-                Log.d(TAG, "Heart rate format UINT16.");
-            } else {
-                format = BluetoothGattCharacteristic.FORMAT_UINT8;
-                Log.d(TAG, "Heart rate format UINT8.");
-            }
-            final int heartRate = characteristic.getIntValue(format, 1);
-            Log.d(TAG, String.format("Received heart rate: %d", heartRate));
-            intent.putExtra(EXTRA_DATA, String.valueOf(heartRate));
-        } else {
+        if (UUID_HEALTH_CARE_MEASUREMENT.equals(characteristic.getUuid())) {
+//            int flag = characteristic.getProperties();
+//            int format = -1;
+//            if ((flag & 0x01) != 0) {
+//                format = BluetoothGattCharacteristic.FORMAT_UINT16;
+//                Log.d(TAG, "Heart rate format UINT16.");
+//            } else {
+//                format = BluetoothGattCharacteristic.FORMAT_UINT8;
+//                Log.d(TAG, "Heart rate format UINT8.");
+//            }
+//            final int heartRate = characteristic.getIntValue(format, 1);
+//            Log.d(TAG, String.format("Received heart rate: %d", heartRate));
+//            intent.putExtra(EXTRA_DATA, String.valueOf(heartRate));
+//        } else {
             // For all other profiles, writes the data formatted in HEX.
             final byte[] data = characteristic.getValue();
             if (data != null && data.length > 0) {
@@ -283,7 +279,6 @@ public class BluetoothLeService extends Service {
             Log.w(TAG, "BluetoothAdapter not initialized");
             return;
         }
-        writeCharacteristic(characteristic);
         mBluetoothGatt.readCharacteristic(characteristic);
     }
     
@@ -293,24 +288,7 @@ public class BluetoothLeService extends Service {
             return;
         }
         
-        byte[] mac = CHexConver.hexStr2Bytes(mBluetoothDeviceAddress);
-        
-        byte[] value = new byte[16];
-        value[0] = 0x09;
-        value[1] = 0x0F;
-        value[2] = 0x01;
-        value[3] = (byte)0xA5;
-        value[4] = mac[0];
-        value[5] = mac[1];
-        value[6] = mac[2];
-        value[7] = mac[3];
-        value[8] = mac[4];
-        value[9] = mac[5];
-        value[10] = 0x09;
-        value[11] = (byte)178;
-        value[12] = (byte)26;
-        value[13] = (byte)1;
-        value[14] = (byte)1;
+        byte[] value = getValues();
         
         characteristic.setValue(value);
     	mBluetoothGatt.writeCharacteristic(characteristic);
@@ -330,37 +308,38 @@ public class BluetoothLeService extends Service {
         }
         mBluetoothGatt.setCharacteristicNotification(characteristic, enabled);
 
-        // This is specific to Heart Rate Measurement.
-        if (UUID_HEART_RATE_MEASUREMENT.equals(characteristic.getUuid())) {
-            BluetoothGattDescriptor descriptor = characteristic.getDescriptor(
-                    UUID.fromString(SampleGattAttributes.CLIENT_CHARACTERISTIC_CONFIG));
-            descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-            mBluetoothGatt.writeDescriptor(descriptor);
-        } else if (UUID.fromString("00002a05-0000-1000-8000-00805f9b34fb").equals(characteristic.getUuid())) {
-        	BluetoothGattDescriptor descriptor = characteristic.getDescriptor(
-                    UUID.fromString("00002902-0000-1000-8000-00805f9b34fb"));
-        	byte[] mac = CHexConver.hexStr2Bytes(mBluetoothDeviceAddress);
-            
-            byte[] value = new byte[16];
-            value[0] = 0x09;
-            value[1] = 0x0F;
-            value[2] = 0x01;
-            value[3] = (byte)0xA5;
-            value[4] = mac[0];
-            value[5] = mac[1];
-            value[6] = mac[2];
-            value[7] = mac[3];
-            value[8] = mac[4];
-            value[9] = mac[5];
-            value[10] = 0x09;
-            value[11] = (byte)178;
-            value[12] = (byte)26;
-            value[13] = (byte)1;
-            value[14] = (byte)1;
-            descriptor.setValue(value);
-            mBluetoothGatt.writeDescriptor(descriptor);
+        // This is specific to Health Care Measurement.
+        if (UUID_HEALTH_CARE_MEASUREMENT.equals(characteristic.getUuid())) {
+//            BluetoothGattDescriptor descriptor = characteristic.getDescriptor(
+//                    UUID.fromString(SampleGattAttributes.CLIENT_CHARACTERISTIC_CONFIG));
+//            descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+//            mBluetoothGatt.writeDescriptor(descriptor);
+            byte[] value = getValues();
+            characteristic.setValue(value);
+            mBluetoothGatt.writeCharacteristic(characteristic);
         }
     }
+
+	private byte[] getValues() {
+		byte[] mac = CHexConver.hexStr2Bytes(mBluetoothDeviceAddress);
+		byte[] value = new byte[16];
+		value[0] = 0x09;
+		value[1] = 0x0F;
+		value[2] = 0x01;
+		value[3] = (byte)0xA5;
+		value[4] = mac[0];
+		value[5] = mac[1];
+		value[6] = mac[2];
+		value[7] = mac[3];
+		value[8] = mac[4];
+		value[9] = mac[5];
+		value[10] = 0x09;
+		value[11] = (byte)178;
+		value[12] = (byte)26;
+		value[13] = (byte)1;
+		value[14] = (byte)1;
+		return value;
+	}
 
     /**
      * Retrieves a list of supported GATT services on the connected device. This should be
@@ -370,7 +349,6 @@ public class BluetoothLeService extends Service {
      */
     public List<BluetoothGattService> getSupportedGattServices() {
         if (mBluetoothGatt == null) return null;
-
         return mBluetoothGatt.getServices();
     }
 }
