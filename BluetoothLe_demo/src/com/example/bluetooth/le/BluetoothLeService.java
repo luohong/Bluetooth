@@ -145,7 +145,48 @@ public class BluetoothLeService extends Service {
                 final StringBuilder stringBuilder = new StringBuilder(data.length);
                 for(byte byteChar : data)
                     stringBuilder.append(String.format("%02X ", byteChar));
-                intent.putExtra(EXTRA_DATA, new String(data) + "\n" + stringBuilder.toString());
+                String hex = stringBuilder.toString();
+                
+    			boolean writeResult = false;
+            	if (data[0] == 0x08 && data.length > 1) {
+            		if (data[1] == 0x05) {// 唤醒称体选择此用户来开始测量 ACK CMD
+            			if (data.length >=4 && data[2] == 0x01 && data[3] == (byte)0xA5) {
+            				// 已收到称体的确认命令
+//            				Log.d(TAG, "APP需下发这条命令给到称体，用于唤醒称体选择此用户来开始测量。");
+            			}
+            		} else if (data[1] == 0x11 || data[1] == 0x12) {
+            			if (data.length >=4 && data[2] == 0x01 && data[3] == (byte)0xB1) {
+//            				Log.d(TAG, "称体端测量完毕后，会上传测量的数据结果");
+            				byte[] value = new byte[5];
+            				value[0] = 0x09;
+            				value[1] = 0x04;
+            				value[2] = 0x01;
+            				value[3] = (byte)0xB0;
+            				if (data[1] == 0x11) {
+            					value[4] = 0x01;
+            				} else {
+            					value[4] = 0x02;
+            				}
+            				characteristic.setValue(value);
+            				writeResult = mBluetoothGatt.writeCharacteristic(characteristic);
+            			}
+            		} else if (data[1] == 0x07) {
+            			if (data.length >=4 && data[2] == 0x01 && data[3] == (byte)0xB0) {
+//            				Log.d(TAG, "称重过程中，称体会实时传输当前的重量数据，APP端需要接收并显示在测量的主界面上。");
+            				byte[] value = new byte[4];
+            				value[0] = 0x09;
+            				value[1] = 0x04;
+            				value[2] = 0x01;
+            				value[3] = (byte)0xB0;
+            				characteristic.setValue(value);
+            				writeResult = mBluetoothGatt.writeCharacteristic(characteristic);
+            			}
+            		}
+            	}
+
+    			Log.d(TAG, "received data: " + hex + " and write result: " + writeResult);
+            	
+                intent.putExtra(EXTRA_DATA, new String(data) + "\n" + hex);
             }
         }
         sendBroadcast(intent);
