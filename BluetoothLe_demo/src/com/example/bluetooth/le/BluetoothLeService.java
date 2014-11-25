@@ -195,9 +195,7 @@ public class BluetoothLeService extends Service {
          		    	long offset = now - time2000;
          		    	offset = offset / 1000;
          		    	
-         		    	String timestamp = Long.toString(offset);
-         		    	timestamp = timestamp.substring(0, 8);
-         		    	
+         		    	String timestamp = Long.toHexString(offset);
          		    	byte[] time = CHexConver.hexStr2Bytes(timestamp);
          		    	
          		    	byte[] value = new byte[8];
