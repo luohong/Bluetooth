@@ -16,6 +16,7 @@
 
 package com.example.bluetooth.le;
 
+import java.util.Calendar;
 import java.util.List;
 import java.util.UUID;
 
@@ -147,16 +148,17 @@ public class BluetoothLeService extends Service {
                     stringBuilder.append(String.format("%02X ", byteChar));
                 String hex = stringBuilder.toString();
                 
+                boolean isNeedWrite = true;
     			boolean writeResult = false;
             	if (data[0] == 0x08 && data.length > 1) {
             		if (data[1] == 0x05) {// 唤醒称体选择此用户来开始测量 ACK CMD
             			if (data.length >4 && data[2] == 0x01 && data[3] == (byte)0xA5 && data[4] == 0x01) {
-            				// 已收到称体的确认命令
-//            				Log.d(TAG, "APP需下发这条命令给到称体，用于唤醒称体选择此用户来开始测量。");
+            				isNeedWrite = false;
+            				// APP需下发这条命令给到称体，用于唤醒称体选择此用户来开始测量。
             			}
             		} else if (data[1] == 0x11 || data[1] == 0x12) {
             			if (data.length >=4 && data[2] == 0x01 && data[3] == (byte)0xB1) {
-//            				Log.d(TAG, "称体端测量完毕后，会上传测量的数据结果");
+//            				称体端测量完毕后，会上传测量的数据结果
             				byte[] value = new byte[5];
             				value[0] = 0x09;
             				value[1] = 0x04;
@@ -172,7 +174,7 @@ public class BluetoothLeService extends Service {
             			}
             		} else if (data[1] == 0x07) {
             			if (data.length >=4 && data[2] == 0x01 && data[3] == (byte)0xB0) {
-//            				Log.d(TAG, "称重过程中，称体会实时传输当前的重量数据，APP端需要接收并显示在测量的主界面上。");
+//            				称重过程中，称体会实时传输当前的重量数据，APP端需要接收并显示在测量的主界面上。
             				byte[] value = new byte[4];
             				value[0] = 0x09;
             				value[1] = 0x04;
@@ -182,9 +184,41 @@ public class BluetoothLeService extends Service {
             				writeResult = mBluetoothGatt.writeCharacteristic(characteristic);
             			}
             		}
+            	} else if (data[0] == 0x06) {
+         			if (data.length >= 4 && data[1] == 0x04 && data[2] == (byte)0x01 && data[3] == 0xA1) {
+         				// APP与称体建立连接后，称体端蓝牙会先主动读取一次系统时间
+         				
+         				Calendar c = Calendar.getInstance();
+         		    	c.set(2000, 0, 1, 0, 0, 0);
+         		    	long time2000 = c.getTimeInMillis();
+         		    	long now = System.currentTimeMillis();
+         		    	long offset = now - time2000;
+         		    	offset = offset / 1000;
+         		    	
+         		    	String timestamp = Long.toString(offset);
+         		    	timestamp = timestamp.substring(0, 8);
+         		    	
+         		    	byte[] time = CHexConver.hexStr2Bytes(timestamp);
+         		    	
+         		    	byte[] value = new byte[8];
+        				value[0] = 0x07;
+        				value[1] = 0x08;
+        				value[2] = 0x01;
+        				value[3] = (byte)0xA1;
+        				value[4] = time[0];
+        				value[5] = time[1];
+        				value[6] = time[2];
+        				value[7] = time[3];
+        				characteristic.setValue(value);
+        				writeResult = mBluetoothGatt.writeCharacteristic(characteristic);
+         			}
             	}
 
-    			Log.d(TAG, "received data: " + hex + " and write result: " + writeResult);
+            	if (isNeedWrite) {
+            		Log.d(TAG, "received data: " + hex + " and write result: " + writeResult);
+            	} else {
+            		Log.d(TAG, "received data: " + hex);
+            	}
             	
                 intent.putExtra(EXTRA_DATA, new String(data) + "\n" + hex);
             }
