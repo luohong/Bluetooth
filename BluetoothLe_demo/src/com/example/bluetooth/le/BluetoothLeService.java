@@ -185,7 +185,7 @@ public class BluetoothLeService extends Service {
             			}
             		}
             	} else if (data[0] == 0x06) {
-         			if (data.length >= 4 && data[1] == 0x04 && data[2] == (byte)0x01 && data[3] == 0xA1) {
+         			if (data.length >= 4 && data[1] == 0x04 && data[2] == (byte)0x01 && data[3] == (byte)0xA1) {
          				// APP与称体建立连接后，称体端蓝牙会先主动读取一次系统时间
          				
          				Calendar c = Calendar.getInstance();
