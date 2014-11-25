@@ -150,7 +150,7 @@ public class BluetoothLeService extends Service {
     			boolean writeResult = false;
             	if (data[0] == 0x08 && data.length > 1) {
             		if (data[1] == 0x05) {// 唤醒称体选择此用户来开始测量 ACK CMD
-            			if (data.length >=4 && data[2] == 0x01 && data[3] == (byte)0xA5) {
+            			if (data.length >4 && data[2] == 0x01 && data[3] == (byte)0xA5 && data[4] == 0x01) {
             				// 已收到称体的确认命令
 //            				Log.d(TAG, "APP需下发这条命令给到称体，用于唤醒称体选择此用户来开始测量。");
             			}
@@ -363,17 +363,20 @@ public class BluetoothLeService extends Service {
 
 	private byte[] getValues() {
 		byte[] mac = CHexConver.hexStr2Bytes(mBluetoothDeviceAddress);
+		
+//		String data = "09 0F 01 A5 " + mBluetoothDeviceAddress + " 09 "
+		
 		byte[] value = new byte[16];
 		value[0] = 0x09;
 		value[1] = 0x0F;
 		value[2] = 0x01;
 		value[3] = (byte)0xA5;
-		value[4] = mac[0];
-		value[5] = mac[1];
-		value[6] = mac[2];
-		value[7] = mac[3];
-		value[8] = mac[4];
-		value[9] = mac[5];
+		value[4] = mac[5];
+		value[5] = mac[4];
+		value[6] = mac[3];
+		value[7] = mac[2];
+		value[8] = mac[1];
+		value[9] = mac[0];
 		value[10] = 0x09;
 		value[11] = (byte)178;
 		value[12] = (byte)26;
