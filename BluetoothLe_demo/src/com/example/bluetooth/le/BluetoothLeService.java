@@ -165,6 +165,14 @@ public class BluetoothLeService extends Service {
             				value[2] = 0x01;
             				value[3] = (byte)0xB0;
             				if (data[1] == 0x11) {
+            					Calendar c = Calendar.getInstance();
+                 		    	c.set(2000, 0, 1, 0, 0, 0);
+                 		    	long time2000 = c.getTimeInMillis();
+                 		    	
+                 		    	String hexStr = Byte.toString(data[7]) + Byte.toString(data[8]) + Byte.toString(data[9]) + Byte.toString(data[10]);
+                 		    	long time = Long.parseLong(hexStr, 16);
+                 		    	time = time * 1000 + time2000;
+            					
             					value[4] = 0x01;
             				} else {
             					value[4] = 0x02;
